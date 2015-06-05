@@ -274,10 +274,12 @@ proxy_accept(struct context *ctx, struct conn *p)
     rstatus_t status;
     struct conn *c;
     int sd;
+    struct server_pool *pool = p->owner;
 
     ASSERT(p->proxy && !p->client);
     ASSERT(p->sd > 0);
     ASSERT(p->recv_active && p->recv_ready);
+    ASSERT(pool != NULL);
 
     for (;;) {
         sd = accept(p->sd, NULL, NULL);
@@ -293,7 +295,7 @@ proxy_accept(struct context *ctx, struct conn *p)
                 return NC_OK;
             }
 
-            /* 
+            /*
              * Workaround of https://github.com/twitter/twemproxy/issues/97
              *
              * We should never reach here because the check for conn_ncurr_cconn()
@@ -355,6 +357,15 @@ proxy_accept(struct context *ctx, struct conn *p)
                   strerror(errno));
         c->close(ctx, c);
         return status;
+    }
+
+    if (pool->tcpkeepalive) {
+       status = nc_set_tcpkeepalive(c->sd, pool->tcpkeepidle, pool->tcpkeepintvl,
+                       pool->tcpkeepcnt);
+        if (status < 0) {
+            log_warn("set tcpkeepalive on c %d from p %d failed, ignored: %s",
+                     c->sd, p->sd, strerror(errno));
+        }
     }
 
     if (p->family == AF_INET || p->family == AF_INET6) {

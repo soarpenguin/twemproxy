@@ -110,6 +110,49 @@ nc_set_linger(int sd, int timeout)
 }
 
 int
+nc_set_tcpkeepalive(int sd, int keepidle, int keepintvl, int keepcnt)
+{
+    rstatus_t status = 0;
+    int keepalive;
+    socklen_t len;
+
+    keepalive = 1;
+    len = sizeof(keepalive);
+
+    status = setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, len);
+    if(status != NC_OK) {
+       return status;
+    }
+
+    if(keepidle > 0) {
+       len = sizeof(keepidle);
+       status = setsockopt(sd, SOL_TCP, TCP_KEEPIDLE, &keepidle, len);
+       if(status != NC_OK) {
+           return status;
+       }
+    }
+
+    if(keepintvl > 0) {
+       len = sizeof(keepintvl);
+       status = setsockopt(sd, SOL_TCP, TCP_KEEPINTVL, &keepintvl, len);
+       if(status != NC_OK) {
+            return status;
+       }
+    }
+
+    if(keepcnt > 0) {
+       len = sizeof(keepcnt);
+       status = setsockopt(sd, SOL_TCP, TCP_KEEPCNT, &keepcnt, len);
+       if(status != NC_OK) {
+            return status;
+       }
+    }
+
+    return status;
+}
+
+
+int
 nc_set_sndbuf(int sd, int size)
 {
     socklen_t len;
